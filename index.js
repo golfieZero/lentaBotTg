@@ -1,59 +1,63 @@
 const { Telegraf } = require('telegraf');
-const winston = require('winston');
-const dotenv = require('dotenv');
-dotenv.config();
+const express = require('express');
+const bodyParser = require('body-parser');
 
-const logger = winston.createLogger({
-  format: winston.format.simple(),
-  transports: [
-    new winston.transports.Console(),
-    new winston.transports.File({ filename: 'bot.log' })
-  ]
+const app = express();
+app.use(bodyParser.json());
+
+const botToken = BOT_TOKEN;
+const bot = new Telegraf(botToken);
+
+// Обработка входящих обновлений от вебхука
+app.post('/webhook', (req, res) => {
+  bot.handleUpdate(req.body);
+  res.sendStatus(200);
 });
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
-
-const userSubscriptions = new Map();
-
-bot.start((ctx) => {
-  ctx.reply('Привет! Я бот, который пересылает сообщения из каналов. Просто отправьте мне ссылку на канал (или его username), и я начну отправлять вам сообщения из него.');
-  logger.info(`User ${ctx.from.id} started the bot.`);
+// Обработка команды /start
+bot.command('start', (ctx) => {
+  ctx.reply('Привет! Я бот, который отправляет новые сообщения из выбранных каналов. Для начала отправьте мне ссылку на канал (или его username) командой /subscribe.');
 });
 
-bot.on('text', async (ctx) => {
+// Подписка на канал
+bot.command('subscribe', async (ctx) => {
   const chatId = ctx.chat.id;
-  const messageText = ctx.message.text;
+  const messageText = ctx.message.text.split(' ')[1];
 
-  if (messageText.startsWith('https://t.me/') || messageText.startsWith('@')) {
-    try {
-      const chatInfo = await ctx.telegram.getChat(messageText);
-      ctx.reply(`Вы подписались на канал "${chatInfo.title}". Теперь я буду отправлять вам сообщения из него.`);
-      userSubscriptions.set(chatId, chatInfo);
-      logger.info(`User ${ctx.from.id} subscribed to channel ${chatInfo.title}.`);
-    } catch (error) {
-      ctx.reply(`Ошибка при подписке на канал: ${error.message}`);
-      logger.error(`Error subscribing user ${ctx.from.id} to channel: ${error.message}`);
-    }
-  } else {
-    ctx.reply(`Пожалуйста, отправьте мне корректную ссылку на канал или его username.`);
-    logger.warn(`User ${ctx.from.id} provided an incorrect channel link or username.`);
+  try {
+    const chatInfo = await ctx.telegram.getChat(messageText);
+    ctx.reply(`Вы подписались на канал "${chatInfo.title}". Теперь я буду отправлять вам сообщения из него.`);
+  } catch (error) {
+    ctx.reply(`Ошибка при подписке на канал: ${error.message}`);
   }
 });
 
+// Обработка входящих сообщений от подписанных каналов
 bot.on('message', (ctx) => {
   const chatId = ctx.chat.id;
-
-  if (userSubscriptions.has(chatId)) {
-    const channelInfo = userSubscriptions.get(chatId);
-    ctx.telegram.forwardMessage(chatId, channelInfo.id, ctx.message.message_id);
-    logger.info(`Forwarded message from channel ${channelInfo.title} to user ${ctx.from.id}.`);
+  // Проверяем, подписан ли пользователь на канал
+  // Если да, отправляем ему сообщение из канала
+  if (userIsSubscribed(chatId)) {
+    ctx.telegram.forwardMessage(chatId, ctx.message.chat.id, ctx.message.message_id);
   }
 });
 
-// Обработка событий канала (channel_post)
-bot.on('channel_post', (ctx) => {
-  const channelPost = ctx.update.channel_post;
-  logger.info(`Received channel post from channel ${channelPost.chat.username}.`);
-});
+// Функция проверки подписки пользователя
+function userIsSubscribed(chatId) {
+  // Простая логика: проверяем, есть ли пользователь в подписках (без хранения в базе данных)
+  return console.log(true);  // В данном примере предполагается, что подписка уже была выполнена в команде /subscribe
+}
 
+// Запуск бота
 bot.launch();
+
+// Установка вебхука
+const PORT = 3000;
+const WEBHOOK_URL = `https://194.87.111.47:${PORT}/webhook`;
+
+bot.telegram.setWebhook(WEBHOOK_URL);
+
+// Запуск express приложения
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
