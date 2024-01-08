@@ -52,7 +52,7 @@ function userIsSubscribed(chatId) {
 bot.launch();
 
 // Установка вебхука
-const PORT = 3000;
+const PORT = 8443;
 const WEBHOOK_URL = `https://194.87.111.47:${PORT}/webhook`;
 
 bot.telegram.setWebhook(WEBHOOK_URL);
