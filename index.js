@@ -67,7 +67,7 @@ function userIsSubscribed(chatId) {
 bot.launch();
 
 const PORT = 8443;
-const WEBHOOK_URL = `https://your-server-ip:${PORT}/webhook`;
+const WEBHOOK_URL = `https://:194.87.111.47${PORT}/webhook`;
 
 bot.telegram.setWebhook(WEBHOOK_URL);
 logger.info(`Webhook is set up at ${WEBHOOK_URL}`);
