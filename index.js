@@ -14,6 +14,8 @@ app.post('/webhook', (req, res) => {
   res.sendStatus(200);
 });
 
+const subscriptions = {};
+
 // Обработка команды /start
 bot.command('start', (ctx) => {
   ctx.reply('Привет! Я бот, который отправляет новые сообщения из выбранных каналов. Для начала отправьте мне ссылку на канал (или его username) командой /subscribe.');
@@ -27,6 +29,7 @@ bot.command('subscribe', async (ctx) => {
   try {
     const chatInfo = await ctx.telegram.getChat(messageText);
     ctx.reply(`Вы подписались на канал "${chatInfo.title}". Теперь я буду отправлять вам сообщения из него.`);
+    subscriptions[chatId] = chatInfo;
   } catch (error) {
     ctx.reply(`Ошибка при подписке на канал: ${error.message}`);
   }
@@ -38,18 +41,19 @@ bot.on('message', (ctx) => {
   // Проверяем, подписан ли пользователь на канал
   // Если да, отправляем ему сообщение из канала
   if (userIsSubscribed(chatId)) {
-    ctx.telegram.forwardMessage(chatId, ctx.message.chat.id, ctx.message.message_id);
+    ctx.telegram.forwardMessage(chatId, subscriptions[chatId].id, ctx.message.message_id);
   }
 });
 
 // Функция проверки подписки пользователя
 function userIsSubscribed(chatId) {
   // Простая логика: проверяем, есть ли пользователь в подписках (без хранения в базе данных)
-  return console.log(true);  // В данном примере предполагается, что подписка уже была выполнена в команде /subscribe
+  return subscriptions.hasOwnProperty(chatId);
 }
 
 // Запуск бота
 bot.launch();
+
 
 // Установка вебхука
 const PORT = 8443;
