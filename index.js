@@ -1,12 +1,12 @@
 const { Telegraf } = require('telegraf');
 const express = require('express');
 const bodyParser = require('body-parser');
-const dotenv = require('dotenv').load();
+require('dotenv').config();
 
 const app = express();
 app.use(bodyParser.json());
 
-const botToken = dotenv.BOT_TOKEN;
+const botToken = process.env.BOT_TOKEN;
 const bot = new Telegraf(botToken);
 
 // Обработка входящих обновлений от вебхука
