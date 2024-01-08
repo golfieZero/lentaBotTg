@@ -7,7 +7,6 @@ require('dotenv').config();
 const app = express();
 app.use(bodyParser.json());
 
-// Настройка логгера
 const logger = winston.createLogger({
   format: winston.format.simple(),
   transports: [
@@ -19,7 +18,6 @@ const logger = winston.createLogger({
 const botToken = process.env.BOT_TOKEN;
 const bot = new Telegraf(botToken);
 
-// Обработка входящих обновлений от вебхука
 app.post('/webhook', (req, res) => {
   bot.handleUpdate(req.body);
   res.sendStatus(200);
@@ -28,13 +26,11 @@ app.post('/webhook', (req, res) => {
 
 const subscriptions = {};
 
-// Обработка команды /start
 bot.command('start', (ctx) => {
   ctx.reply('Привет! Я бот, который отправляет новые сообщения из выбранных каналов. Для начала отправьте мне ссылку на канал (или его username) командой /subscribe.');
   logger.info(`User ${ctx.from.id} started the bot.`);
 });
 
-// Подписка на канал
 bot.command('subscribe', async (ctx) => {
   const chatId = ctx.chat.id;
   const messageText = ctx.message.text.split(' ')[1];
@@ -50,34 +46,32 @@ bot.command('subscribe', async (ctx) => {
   }
 });
 
-// Обработка входящих сообщений от подписанных каналов
 bot.on('message', (ctx) => {
   const chatId = ctx.chat.id;
-  // Проверяем, подписан ли пользователь на канал
-  // Если да, отправляем ему сообщение из канала
   if (userIsSubscribed(chatId)) {
-    ctx.telegram.forwardMessage(chatId, subscriptions[chatId].id, ctx.message.message_id);
-    logger.info(`Forwarded message from channel ${subscriptions[chatId].title} to user ${ctx.from.id}.`);
+    try {
+      const messageId = ctx.message.message_id;
+      const fromChatId = subscriptions[chatId].id;
+      ctx.telegram.forwardMessage(chatId, fromChatId, messageId);
+      logger.info(`Forwarded message from channel ${subscriptions[chatId].title} to user ${ctx.from.id}.`);
+    } catch (error) {
+      logger.error(`Error forwarding message to user ${ctx.from.id}: ${error.message}`);
+    }
   }
 });
 
-// Функция проверки подписки пользователя
 function userIsSubscribed(chatId) {
-  // Простая логика: проверяем, есть ли пользователь в подписках (без хранения в базе данных)
   return subscriptions.hasOwnProperty(chatId);
 }
 
-// Запуск бота
 bot.launch();
 
-// Установка вебхука
 const PORT = 8443;
-const WEBHOOK_URL = `https://194.87.111.47:${PORT}/webhook`;
+const WEBHOOK_URL = `https://your-server-ip:${PORT}/webhook`;
 
 bot.telegram.setWebhook(WEBHOOK_URL);
 logger.info(`Webhook is set up at ${WEBHOOK_URL}`);
 
-// Запуск express приложения
 app.listen(PORT, () => {
   logger.info(`Server is running on port ${PORT}`);
 });
