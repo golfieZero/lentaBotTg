@@ -18,8 +18,8 @@ const logger = winston.createLogger({
 const botToken = process.env.BOT_TOKEN;
 const bot = new Telegraf(botToken);
 
-app.post('/webhook', (req, res) => {
-  bot.handleUpdate(req.body);
+app.post('/webhook', async (req, res) => {
+  await bot.handleUpdate(req.body);
   res.sendStatus(200);
   logger.info('Received update from webhook.');
 });
@@ -66,8 +66,8 @@ function userIsSubscribed(chatId) {
 
 bot.launch();
 
-const PORT = 8443;
-const WEBHOOK_URL = `https://194.87.111.47:${PORT}/webhook`;
+const PORT = 3000;
+const WEBHOOK_URL = `https://194.87.111.47:8443/webhook`;
 
 bot.telegram.setWebhook(WEBHOOK_URL);
 logger.info(`Webhook is set up at ${WEBHOOK_URL}`);
